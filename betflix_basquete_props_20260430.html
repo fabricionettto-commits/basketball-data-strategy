@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Basketball Decision Intelligence System - NBA Player Performance</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --panel: rgba(18, 18, 18, .86);
+      --panel2: rgba(255, 255, 255, .065);
+      --text: #f6f6f6;
+      --muted: #b8b8b8;
+      --red: #e50914;
+      --gold: #f6c65b;
+      --silver: #c9d3df;
+      --green: #24d17e;
+      --blue: #86d7ff;
+      --line: rgba(255, 255, 255, .13);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(110deg, rgba(0,0,0,.96), rgba(0,0,0,.68) 48%, rgba(0,0,0,.94)),
+        url("https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1800&q=80") center/cover fixed;
+      filter: saturate(.9) brightness(.62);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 72% 20%, rgba(246,198,91,.18), transparent 26%),
+        radial-gradient(circle at 18% 14%, rgba(134,215,255,.16), transparent 30%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 80px);
+    }
+
+    header {
+      min-height: 88vh;
+      padding: 34px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+      gap: 30px;
+      align-items: center;
+    }
+
+    .brand {
+      font-size: 48px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      color: var(--gold);
+      text-transform: uppercase;
+      text-shadow: 0 0 28px rgba(246,198,91,.45);
+    }
+
+    h1 {
+      margin: 12px 0 10px;
+      font-size: clamp(42px, 7vw, 92px);
+      line-height: .94;
+      text-transform: uppercase;
+      max-width: 980px;
+    }
+
+    p { line-height: 1.55; }
+
+    .sub {
+      max-width: 860px;
+      color: rgba(255,255,255,.78);
+      font-size: 17px;
+    }
+
+    .meta,
+    .hero-actions,
+    .selector {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta { margin-top: 20px; }
+
+    .pill,
+    .filter-btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 900;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .hero-actions { margin-top: 22px; }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 13px 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      cursor: pointer;
+      color: #080808;
+      background: #fff;
+      box-shadow: 0 14px 28px rgba(0,0,0,.28);
+    }
+
+    .btn.gold { background: var(--gold); color: #161105; }
+    .btn.red { background: var(--red); color: #fff; }
+
+    .cube-stage {
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
+      position: relative;
+    }
+
+    .cube-glow {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(246,198,91,.32), rgba(134,215,255,.13) 46%, transparent 68%);
+      filter: blur(18px);
+    }
+
+    .cube {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      transform-style: preserve-3d;
+      animation: spin 18s linear infinite;
+    }
+
+    .cube:hover { animation-play-state: paused; }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(246,198,91,.72);
+      background: linear-gradient(145deg, rgba(20,20,20,.96), rgba(5,5,5,.88));
+      box-shadow: inset 0 0 48px rgba(0,0,0,.82), 0 0 26px rgba(246,198,91,.22);
+      display: grid;
+      align-content: end;
+      padding: 22px;
+      overflow: hidden;
+      backface-visibility: hidden;
+    }
+
+    .face::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.16), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 1px, transparent 1px 26px);
+    }
+
+    .face b,
+    .face span {
+      position: relative;
+      text-shadow: 0 5px 18px #000;
+    }
+
+    .face b {
+      font-size: 42px;
+      line-height: .9;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    .face span {
+      margin-top: 8px;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    .f1 { transform: translateZ(130px); }
+    .f2 { transform: rotateY(90deg) translateZ(130px); }
+    .f3 { transform: rotateY(180deg) translateZ(130px); }
+    .f4 { transform: rotateY(-90deg) translateZ(130px); }
+    .f5 { transform: rotateX(90deg) translateZ(130px); }
+    .f6 { transform: rotateX(-90deg) translateZ(130px); }
+
+    @keyframes spin {
+      0% { transform: rotateX(-14deg) rotateY(0deg); }
+      50% { transform: rotateX(12deg) rotateY(180deg); }
+      100% { transform: rotateX(-14deg) rotateY(360deg); }
+    }
+
+    .cube-caption {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(440px, 92%);
+      border: 1px solid rgba(246,198,91,.38);
+      background: rgba(5,5,5,.78);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      color: #ddd;
+      box-shadow: 0 18px 40px rgba(0,0,0,.34);
+    }
+
+    main { padding: 26px 34px 52px; }
+
+    .selector {
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      margin: -26px -34px 24px;
+      padding: 14px 34px;
+      background: rgba(5,5,5,.86);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+      overflow-x: auto;
+    }
+
+    .filter-btn {
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--gold);
+      color: #111;
+      border-color: var(--gold);
+    }
+
+    .filter-btn.bad-filter.active {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    section.box {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .box h2 { margin: 0 0 12px; font-size: 22px; }
+    .box ul { margin: 0; padding-left: 20px; color: #ddd; }
+    .box li { margin: 8px 0; line-height: 1.45; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--panel2), rgba(255,255,255,.025));
+      padding: 18px;
+      box-shadow: 0 18px 38px rgba(0,0,0,.25);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(246,198,91,.5);
+      box-shadow: 0 24px 54px rgba(0,0,0,.38);
+    }
+
+    .card.is-hidden { display: none; }
+    .card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--line); }
+    .card.confidence::before, .card.value::before { background: var(--gold); }
+    .card.watchlist::before { background: var(--silver); }
+    .card.riskflag::before { background: var(--red); }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .top span { color: var(--muted); font-weight: 800; }
+    .top strong { font-size: 12px; border-radius: 999px; padding: 7px 10px; background: #222; }
+    .confidence .top strong, .value .top strong { color: #141414; background: var(--gold); }
+    .watchlist .top strong { color: #101820; background: var(--silver); }
+    .riskflag .top strong { background: var(--red); color: white; }
+
+    .medal {
+      position: absolute;
+      right: 16px;
+      top: 46px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 22px;
+      color: #111;
+      border: 3px solid rgba(255,255,255,.55);
+      box-shadow: 0 10px 28px rgba(0,0,0,.45);
+    }
+
+    .medal.gold { background: linear-gradient(135deg, #fff3aa, var(--gold) 48%, #9c6b00); }
+    .medal.silver { background: linear-gradient(135deg, #fff, #aeb8c4); }
+    .medal.red { background: linear-gradient(135deg, #ff8b8f, var(--red)); color: #fff; }
+
+    .league {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+
+    .card h2 { margin: 0 0 12px; font-size: 25px; max-width: calc(100% - 58px); }
+    .pick { font-size: 20px; font-weight: 900; color: var(--gold); margin-bottom: 8px; }
+    .riskflag .pick { color: #ff777d; }
+
+    .alt {
+      color: #e8e8e8;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .grid div {
+      background: rgba(0,0,0,.24);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 116px;
+    }
+
+    .grid b {
+      display: block;
+      color: var(--green);
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .grid span { color: #ddd; font-size: 14px; line-height: 1.42; }
+    .why { color: #f2f2f2; margin: 12px 0; }
+    .risk { color: var(--muted); margin: 0; font-size: 14px; }
+    a { color: var(--blue); }
+    .disclaimer { color: var(--muted); font-size: 13px; margin-top: 18px; }
+
+    @media (max-width: 900px) {
+      header { grid-template-columns: 1fr; min-height: auto; }
+      .summary, .cards { grid-template-columns: 1fr; }
+      header, main { padding-left: 18px; padding-right: 18px; }
+      .selector { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
+      .grid { grid-template-columns: 1fr; }
+      .brand { font-size: 34px; }
+      .cube-stage { min-height: 390px; }
+      .cube { width: 210px; height: 210px; }
+      .f1 { transform: translateZ(105px); }
+      .f2 { transform: rotateY(90deg) translateZ(105px); }
+      .f3 { transform: rotateY(180deg) translateZ(105px); }
+      .f4 { transform: rotateY(-90deg) translateZ(105px); }
+      .f5 { transform: rotateX(90deg) translateZ(105px); }
+      .f6 { transform: rotateX(-90deg) translateZ(105px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">NBA Intelligence</div>
+      <h1>Basketball Decision Intelligence System</h1>
+      <p class="sub">Player performance analysis for Thursday, April 30, 2026. This dashboard converts minutes, usage, matchup context, recent form, injury status, and market thresholds into decision-ready signals for NBA player props.</p>
+      <div class="meta">
+        <span class="pill">Generated: Apr 30, 2026 BRT</span>
+        <span class="pill">3 NBA games</span>
+        <span class="pill">11 player scenarios</span>
+        <span class="pill">Baseline regression</span>
+        <span class="pill">Risk classification</span>
+      </div>
+      <div class="hero-actions">
+        <button class="btn gold" data-filter-jump="confidence">High Confidence</button>
+        <button class="btn" data-filter-jump="watchlist">Watchlist</button>
+        <button class="btn red" data-filter-jump="riskflag">Risk Flags</button>
+      </div>
+    </div>
+
+    <aside class="cube-stage" aria-label="NBA decision intelligence cube">
+      <div class="cube-glow"></div>
+      <div class="cube">
+        <div class="face f1"><b>PTS</b><span>usage signal</span></div>
+        <div class="face f2"><b>REB</b><span>role + minutes</span></div>
+        <div class="face f3"><b>AST</b><span>creation load</span></div>
+        <div class="face f4"><b>BASE</b><span>projection floor</span></div>
+        <div class="face f5"><b>EDGE</b><span>ceiling gap</span></div>
+        <div class="face f6"><b>PASS</b><span>inflated line</span></div>
+      </div>
+      <div class="cube-caption">A compact decision engine: baseline projection first, upside only when usage, matchup, and variance support the signal.</div>
+    </aside>
+  </header>
+
+  <main>
+    <nav class="selector" aria-label="Select category">
+      <button class="filter-btn active" data-filter="all">All (11)</button>
+      <button class="filter-btn" data-filter="confidence">High Confidence (3)</button>
+      <button class="filter-btn" data-filter="value">Value Signal (2)</button>
+      <button class="filter-btn" data-filter="watchlist">Watchlist (3)</button>
+      <button class="filter-btn bad-filter" data-filter="riskflag">Risk Flags (3)</button>
+    </nav>
+
+    <div class="summary">
+      <section class="box">
+        <h2>Primary Decision Signals</h2>
+        <ul>
+          <li><b>Nikola Jokic</b> - 20+ points + 7+ rebounds + 3+ assists</li>
+          <li><b>Jalen Brunson</b> - 20+ points; aggressive scenario: over 27.5 points</li>
+          <li><b>Karl-Anthony Towns</b> - 7+ rebounds + 3+ assists; 11.5 rebounds if available</li>
+          <li><b>Joel Embiid</b> - 20+ points + 7+ rebounds, adjusted down for physical risk</li>
+          <li><b>Jayson Tatum</b> - 7+ rebounds + 3+ assists, stronger than isolated points exposure</li>
+        </ul>
+      </section>
+
+      <section class="box">
+        <h2>Risk Flags</h2>
+        <ul>
+          <li><b>CJ McCollum over 19.5 points</b> - Knicks adjusted well and his recent production dropped sharply.</li>
+          <li><b>Rudy Gobert over 10.5 rebounds</b> - the line sits near the ceiling of his recent Denver matchup profile.</li>
+          <li><b>Josh Hart rebounds/points</b> - back injury risk and questionable status create minutes uncertainty.</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="box">
+      <h2>Technical Modeling Layer</h2>
+      <ul>
+        <li><b>Baseline regression:</b> a simple player-level projection model estimates points, rebounds, and assists from recent averages, expected minutes, usage role, opponent matchup, and injury context.</li>
+        <li><b>Prediction logic:</b> each projected stat is compared against the market threshold to calculate a directional edge and classify the signal as high confidence, value, watchlist, or risk flag.</li>
+        <li><b>Risk adjustment:</b> projections are penalized when volatility drivers appear, including injury status, blowout risk, elevated line pressure, role conflict, or efficiency decline.</li>
+        <li><b>Decision output:</b> raw stats are translated into readable player performance decisions instead of being framed as gambling picks.</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <h2>Over/Under Model Watchlist - 10 Candidate Scenarios</h2>
+      <ul>
+        <li><b>1. Nikola Jokic over 13.5 rebounds</b> - strongest model lean on the board; volume and matchup support it.</li>
+        <li><b>2. Jalen Brunson over 27.5 points</b> - aggressive, but supported by high usage and on-ball control.</li>
+        <li><b>3. Karl-Anthony Towns over 12.5 rebounds</b> - positive signal, but the threshold is high.</li>
+        <li><b>4. Joel Embiid over 28.5 points</b> - ceiling scenario if no physical restriction is confirmed.</li>
+        <li><b>5. Jayson Tatum over 10.5 rebounds</b> - strong all-around production profile against Philadelphia.</li>
+        <li><b>6. Jamal Murray over 26.5 points</b> - volume exists, but efficiency risk is material against a physical defense.</li>
+        <li><b>7. CJ McCollum under 19.5 points</b> - Knicks adjusted well and recent form declined.</li>
+        <li><b>8. Rudy Gobert under 10.5 rebounds</b> - threshold is high against Denver, with Jokic pulling him away from the rim.</li>
+        <li><b>9. Jaylen Brown under 26.5 points</b> - stretched threshold; lower alternate exposure is cleaner.</li>
+        <li><b>10. Tyrese Maxey under 26.5 points</b> - slight under lean as Embiid projects to absorb more offensive volume.</li>
+      </ul>
+      <p class="disclaimer">This list is a model watchlist, not a betting ticket. Scenario stacking increases variance, so the dashboard is designed for decision analysis and threshold comparison.</p>
+    </section>
+
+    <div class="cards">
+      <article class="card confidence" data-tier="confidence">
+        <div class="top"><span>22:30</span><strong>HIGH CONFIDENCE</strong></div>
+        <div class="medal gold">1</div>
+        <p class="league">DEN Nuggets @ MIN Timberwolves</p>
+        <h2>Nikola Jokic</h2>
+        <div class="pick">20+ points + 7+ rebounds + 3+ assists</div>
+        <div class="alt">Aggressive scenario: over 13.5 rebounds. Avoid relying only on over 29.5 points.</div>
+        <div class="grid">
+          <div><b>Points</b><span>29.5 is a high threshold against a physical defense. The 20+ floor is the cleaner decision signal.</span></div>
+          <div><b>Rebounds</b><span>Best stat category in this profile. Recent history against MIN supports a 13+ ceiling path.</span></div>
+          <div><b>Assists</b><span>3+ is very natural; 7+ is possible, but 3+ is the cleaner component.</span></div>
+        </div>
+        <p class="why">Jokic has volume, playoff minutes, and a central offensive role. Even when scoring efficiency drops, rebounding and passing keep the combined profile stable.</p>
+        <p class="risk"><b>Risk:</b> Minnesota can double-team him, reduce efficiency, and force more passing possessions. That is why the alternate combo is stronger than isolated points exposure.</p>
+      </article>
+
+      <article class="card confidence" data-tier="confidence">
+        <div class="top"><span>20:10</span><strong>HIGH CONFIDENCE</strong></div>
+        <div class="medal gold">1</div>
+        <p class="league">NY Knicks @ ATL Hawks</p>
+        <h2>Jalen Brunson</h2>
+        <div class="pick">20+ points; aggressive scenario over 27.5 points</div>
+        <div class="alt">Pair with 3+ assists if the market price remains reasonable.</div>
+        <div class="grid">
+          <div><b>Points</b><span>Coming off 39 and carrying a strong recent profile against Atlanta. 20+ is a stable baseline.</span></div>
+          <div><b>Rebounds</b><span>Do not chase 7 rebounds here. That is not his natural role.</span></div>
+          <div><b>Assists</b><span>3+ is clean; 5+ has value if a stronger combined signal is needed.</span></div>
+        </div>
+        <p class="why">The ball is in his hands during decision possessions. Atlanta needs to react, but still struggles to contain Brunson's usage volume.</p>
+        <p class="risk"><b>Risk:</b> If the Knicks use KAT as the offensive hub for long stretches, Brunson may become a more selective finisher.</p>
+      </article>
+
+      <article class="card confidence" data-tier="confidence">
+        <div class="top"><span>20:10</span><strong>HIGH CONFIDENCE</strong></div>
+        <div class="medal gold">1</div>
+        <p class="league">NY Knicks @ ATL Hawks</p>
+        <h2>Karl-Anthony Towns</h2>
+        <div class="pick">7+ rebounds + 3+ assists</div>
+        <div class="alt">Positive if available: over 11.5 rebounds. At 12.5, reduce confidence.</div>
+        <div class="grid">
+          <div><b>Points</b><span>20+ can clear, but scoring volatility is higher. It is not the cleanest component.</span></div>
+          <div><b>Rebounds</b><span>Favorable matchup against Atlanta. 7+ is stable; 12.5 is an elevated threshold.</span></div>
+          <div><b>Assists</b><span>The Knicks have used KAT as a facilitator. 3+ pairs well with 7+ rebounds.</span></div>
+        </div>
+        <p class="why">Atlanta has struggled with New York's size, and KAT has been more involved as a creator. Excellent profile for an alternate-line decision.</p>
+        <p class="risk"><b>Risk:</b> Foul trouble or an early game script could reduce fourth-quarter minutes.</p>
+      </article>
+
+      <article class="card value" data-tier="value">
+        <div class="top"><span>21:10</span><strong>VALUE SIGNAL</strong></div>
+        <div class="medal gold">1</div>
+        <p class="league">BOS Celtics @ PHI 76ers</p>
+        <h2>Joel Embiid</h2>
+        <div class="pick">20+ points + 7+ rebounds</div>
+        <div class="alt">Aggressive scenario: over 28.5 points with reduced confidence due to physical status.</div>
+        <div class="grid">
+          <div><b>Points</b><span>Scored 33 in the previous game. 28.5 is possible, but requires health and efficiency.</span></div>
+          <div><b>Rebounds</b><span>7+ is cleaner than chasing a high ceiling. 8.5 requires more caution.</span></div>
+          <div><b>Assists</b><span>3+ is possible, but it is not the priority over points and rebounds.</span></div>
+        </div>
+        <p class="why">Philadelphia is in a survival game script and Embiid projects as the center of the offensive plan. Alternate exposure protects better than an isolated points threshold.</p>
+        <p class="risk"><b>Risk:</b> Physical status still requires caution. If Boston doubles early, points can convert into assist opportunities.</p>
+      </article>
+
+      <article class="card value" data-tier="value">
+        <div class="top"><span>21:10</span><strong>VALUE SIGNAL</strong></div>
+        <div class="medal gold">1</div>
+        <p class="league">BOS Celtics @ PHI 76ers</p>
+        <h2>Jayson Tatum</h2>
+        <div class="pick">7+ rebounds + 3+ assists</div>
+        <div class="alt">Good combined profile: 20+ points + 7+ rebounds + 3+ assists.</div>
+        <div class="grid">
+          <div><b>Points</b><span>24.5 is fairly priced. I would avoid isolated over exposure at that threshold.</span></div>
+          <div><b>Rebounds</b><span>Strong against Philadelphia, with recent averages above the 9/10 range.</span></div>
+          <div><b>Assists</b><span>He has created consistently in the series. 3+ is a natural baseline.</span></div>
+        </div>
+        <p class="why">Tatum is delivering complete production. The strongest path is a combined-stat profile rather than depending only on scoring.</p>
+        <p class="risk"><b>Risk:</b> Jaylen Brown and other scorers can split offensive usage.</p>
+      </article>
+
+      <article class="card watchlist" data-tier="watchlist">
+        <div class="top"><span>22:30</span><strong>WATCHLIST</strong></div>
+        <div class="medal silver">2</div>
+        <p class="league">DEN Nuggets @ MIN Timberwolves</p>
+        <h2>Jamal Murray</h2>
+        <div class="pick">20+ points; aggressive scenario over 26.5 points</div>
+        <div class="alt">Best use: alternate points or PRA, not isolated over as the anchor.</div>
+        <div class="grid">
+          <div><b>Points</b><span>High volume and recent average near the threshold, but efficiency is unstable.</span></div>
+          <div><b>Rebounds</b><span>4.5 rebounds is possible, but not a priority signal.</span></div>
+          <div><b>Assists</b><span>5+ has value if the market offers a combined profile.</span></div>
+        </div>
+        <p class="why">Denver needs him aggressive. The issue is that over 26.5 already prices in an efficient scoring game.</p>
+        <p class="risk"><b>Risk:</b> Murray can finish with 22-25 points and still play well. That keeps him on the watchlist rather than high confidence.</p>
+      </article>
+
+      <article class="card watchlist" data-tier="watchlist">
+        <div class="top"><span>22:30</span><strong>WATCHLIST</strong></div>
+        <div class="medal silver">2</div>
+        <p class="league">DEN Nuggets @ MIN Timberwolves</p>
+        <h2>Rudy Gobert</h2>
+        <div class="pick">Under 10.5 rebounds</div>
+        <div class="alt">Avoid using over 9.5 points as a mandatory component.</div>
+        <div class="grid">
+          <div><b>Points</b><span>Low offensive volume. Depends on lobs, putbacks, and game script.</span></div>
+          <div><b>Rebounds</b><span>Recent profile against Denver is near 10. The 10.5 threshold is already stretched.</span></div>
+          <div><b>Assists</b><span>No relevant decision signal.</span></div>
+        </div>
+        <p class="why">Jokic pulls Gobert away from the rim, Denver contests the glass, and the line is already high for his series profile.</p>
+        <p class="risk"><b>Risk:</b> If Minnesota misses heavily and Gobert plays 36+ minutes, the under becomes pressured.</p>
+      </article>
+
+      <article class="card watchlist" data-tier="watchlist">
+        <div class="top"><span>21:10</span><strong>WATCHLIST</strong></div>
+        <div class="medal silver">2</div>
+        <p class="league">BOS Celtics @ PHI 76ers</p>
+        <h2>Tyrese Maxey</h2>
+        <div class="pick">20+ points; avoid over 26.5 as the main signal</div>
+        <div class="alt">Useful combination: 20+ points + 3+ assists.</div>
+        <div class="grid">
+          <div><b>Points</b><span>He has ceiling, but 26.5 requires a large scoring game alongside Embiid.</span></div>
+          <div><b>Rebounds</b><span>Do not buy high rebounds. 7 rebounds is not a stable baseline.</span></div>
+          <div><b>Assists</b><span>3+ is natural; 5+ depends on teammate shot conversion.</span></div>
+        </div>
+        <p class="why">Maxey still owns ball-handling and minutes, but Embiid projects to absorb a large share of offensive volume in an elimination script.</p>
+        <p class="risk"><b>Risk:</b> He can spike if Boston over-focuses on Embiid. That makes it an alternate-line profile, not a strong under call.</p>
+      </article>
+
+      <article class="card riskflag" data-tier="riskflag">
+        <div class="top"><span>20:10</span><strong>RISK FLAG</strong></div>
+        <div class="medal red">X</div>
+        <p class="league">NY Knicks @ ATL Hawks</p>
+        <h2>CJ McCollum</h2>
+        <div class="pick">Avoid over 19.5 points</div>
+        <div class="alt">Cleaner interpretation: under 19.5 points or no exposure.</div>
+        <div class="grid">
+          <div><b>Points</b><span>Recent form dropped sharply and the last game was poor.</span></div>
+          <div><b>Rebounds</b><span>No meaningful value signal.</span></div>
+          <div><b>Assists</b><span>Irregular volume; not suitable for combined exposure.</span></div>
+        </div>
+        <p class="why">New York adjusted defensively and physical wings have removed his comfort. Over 19.5 became a fragile threshold.</p>
+        <p class="risk"><b>Risk:</b> Atlanta can respond at home, but recent form does not justify buying the over.</p>
+      </article>
+
+      <article class="card riskflag" data-tier="riskflag">
+        <div class="top"><span>20:10</span><strong>RISK FLAG</strong></div>
+        <div class="medal red">X</div>
+        <p class="league">NY Knicks @ ATL Hawks</p>
+        <h2>Josh Hart</h2>
+        <div class="pick">Do not use props as a core model signal</div>
+        <div class="alt">If confirmed fully healthy, only evaluate lower live thresholds.</div>
+        <div class="grid">
+          <div><b>Points</b><span>11.5 points does not compensate for physical risk.</span></div>
+          <div><b>Rebounds</b><span>8.5 rebounds can work when healthy, but status weighs heavily.</span></div>
+          <div><b>Assists</b><span>3+ can appear, but should not be used without minute confirmation.</span></div>
+        </div>
+        <p class="why">Hart appeared as questionable with a back issue. Player props with minute risk should leave the primary decision set.</p>
+        <p class="risk"><b>Risk:</b> Even if active, he can have controlled minutes or reduced aggression.</p>
+      </article>
+
+      <article class="card riskflag" data-tier="riskflag">
+        <div class="top"><span>21:10</span><strong>RISK FLAG</strong></div>
+        <div class="medal red">X</div>
+        <p class="league">BOS Celtics @ PHI 76ers</p>
+        <h2>Jaylen Brown</h2>
+        <div class="pick">Avoid over 26.5 points</div>
+        <div class="alt">If exposure is needed: 20+ points is the cleaner alternate threshold.</div>
+        <div class="grid">
+          <div><b>Points</b><span>The line is very close to recent averages. Limited edge.</span></div>
+          <div><b>Rebounds</b><span>6.5 rebounds is also stretched for his profile.</span></div>
+          <div><b>Assists</b><span>No primary signal here.</span></div>
+        </div>
+        <p class="why">Brown can clear it, but the market placed the threshold near the reasonable ceiling. For strong decision quality, that becomes a pass or a lower alternate.</p>
+        <p class="risk"><b>Risk:</b> If Boston closes the series with a big game from him, the pass loses. Still, it is not a premium model signal.</p>
+      </article>
+    </div>
+
+    <section class="box sources">
+      <h2>Sources Reviewed</h2>
+      <ul>
+        <li><a href="https://www.statmuse.com/nba/ask/nikola-jokic-points-rebounds-assists-last-5-games-against-the-timberwolves">StatMuse - Jokic vs Timberwolves</a></li>
+        <li><a href="https://www.statmuse.com/nba/ask/jalen-brunson-stats-the-last-5-games-vs-hawks">StatMuse - Brunson vs Hawks</a></li>
+        <li><a href="https://www.statmuse.com/nba/ask/karl-anthony-towns-vs-hawks-last-five-games">StatMuse - Towns vs Hawks</a></li>
+        <li><a href="https://www.statmuse.com/nba/ask/jamal-murray-stats-against-timberwolves-last-five-games">StatMuse - Murray vs Timberwolves</a></li>
+        <li><a href="https://www.statmuse.com/nba/ask/gobert-stats-last-5-games-vs-the-nuggets">StatMuse - Gobert vs Nuggets</a></li>
+        <li><a href="https://www.covers.com/sport/basketball/nba/injuries">Covers - NBA Injuries 04/30/2026</a></li>
+        <li><a href="https://www.nypost.com/2026/04/28/sports/jalen-brunsons-39-point-game-5-propels-knicks-into-series-lead-over-hawks/">NY Post - Knicks vs Hawks Game 5</a></li>
+        <li><a href="https://www.libertyballers.com/76ers-scores-results/91962/2026-nba-playoffs-game-5-sixers-celtics-final-score-recap-joel-embiid-tyrese-maxey">Liberty Ballers - Sixers vs Celtics Game 5</a></li>
+      </ul>
+      <p class="disclaimer">This dashboard is a player performance and risk analysis tool, not financial advice or a guarantee. Confirm odds, lineups, injury status, and context before making any real-world decision.</p>
+    </section>
+  </main>
+
+  <script>
+    const cards = [...document.querySelectorAll(".card")];
+    const buttons = [...document.querySelectorAll("[data-filter]")];
+
+    function applyFilter(filter) {
+      cards.forEach(card => {
+        const tier = card.dataset.tier;
+        card.classList.toggle("is-hidden", filter !== "all" && tier !== filter);
+      });
+      buttons.forEach(button => button.classList.toggle("active", button.dataset.filter === filter));
+      document.querySelector(".selector").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    buttons.forEach(button => button.addEventListener("click", () => applyFilter(button.dataset.filter)));
+    document.querySelectorAll("[data-filter-jump]").forEach(button => {
+      button.addEventListener("click", () => applyFilter(button.dataset.filterJump));
+    });
+  </script>
+</body>
+</html>
