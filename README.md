@@ -2,6 +2,12 @@
 
 Decision system for evaluating player performance and game strategy using data modeling and probabilistic reasoning.
 
+## Live Project
+
+Open the interactive HTML report:
+
+https://fabricionettto-commits.github.io/basketball-data-strategy/
+
 This project is not focused on static analysis or dashboards.  
 It is designed to translate complex basketball data into **actionable decisions under uncertainty**.
 
